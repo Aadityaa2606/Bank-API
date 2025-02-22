@@ -1,4 +1,6 @@
-include .env
+ifneq ("$(GITHUB_ACTIONS)", "true")
+    include .env
+endif
 
 POSTGRES_CONTAINER=postgres
 POSTGRES_PASSWORD ?= $(or $(POSTGRES_PASSWORD),password)
