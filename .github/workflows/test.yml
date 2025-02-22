@@ -40,9 +40,9 @@ jobs:
       - name: Install goose migration tool.
         run: |
           curl -fsSL https://raw.githubusercontent.com/pressly/goose/master/install.sh | GOOSE_INSTALL=$HOME/.goose sh -s v3.24.1 || exit 1
-          echo "$HOME/.goose/bin" >> $GITHUB_PATH
+          echo "$HOME/runner/.goose/bin" >> $GITHUB_PATH
           echo "Added Goose to PATH"
-          export PATH="$HOME/.goose/bin:$PATH"
+          export PATH="$HOME/runner/.goose/bin:$PATH"
           goose --version
 
 
