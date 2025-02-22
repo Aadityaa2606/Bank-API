@@ -37,11 +37,11 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
-      - name: Install golang-migrate
+      - name: Install Goose migration tool.
         run: |
-          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.14.1/migrate.linux-amd64.tar.gz | tar xvz
-          sudo mv migrate.linux-amd64 /usr/bin/migrate
-          which migrate
+          curl -fsSL https://raw.githubusercontent.com/pressly/goose/master/install.sh | GOOSE_INSTALL=$HOME/.goose sh -s v3.24.1 || exit 1
+          echo "$HOME/.goose/bin" >> $GITHUB_PATH
+          goose --versio
 
       - name: Run migrations
         env:
