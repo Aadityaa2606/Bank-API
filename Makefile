@@ -12,6 +12,9 @@ GOOSE_DRIVER=postgres
 GOOSE_DBSTRING=postgresql://$(DB_USER):$(POSTGRES_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 GOOSE_DIR=./db/migration
 
+devenv:
+	sudo systemctl start docker | sudo docker start postgres | sudo docker ps
+
 postgres:
 	sudo docker run --name $(POSTGRES_CONTAINER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) -p $(DB_PORT):$(DB_PORT) -d postgres:17-alpine
 
@@ -26,8 +29,14 @@ dropdb:
 migrateup:
 	goose $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" -dir $(GOOSE_DIR) up
 
+migrateup1:
+	goose $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" -dir $(GOOSE_DIR) up 1
+
 migratedown:
 	goose $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" -dir $(GOOSE_DIR) down
+
+migratedown1:
+	goose $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" -dir $(GOOSE_DIR) down 1
 
 sqlc:
 	sqlc generate
@@ -35,4 +44,7 @@ sqlc:
 test:
 	go test -v -cover ./...
 
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc printenv
+server:
+	go run main.go
+
+.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc printenv server
