@@ -1,41 +1,82 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	db "github.com/Aadityaa2606/simpleBank/db/sqlc"
+	"github.com/Aadityaa2606/simpleBank/token"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 )
 
 type Server struct {
-	store  *db.Store
-	router *gin.Engine
+	store                *db.Store
+	tokenMaker           token.Maker
+	router               *gin.Engine
+	accessTokenDuration  time.Duration
+	refreshTokenDuration time.Duration
 }
 
-func NewServer(store *db.Store) *Server {
-	server := &Server{store: store}
-	router := gin.Default()
+func NewServer(store *db.Store) (*Server, error) {
+	tokenMaker, err := token.NewJWTMaker(os.Getenv("TOKEN_SYMMETRIC_KEY"))
+	if err != nil {
+		return nil, fmt.Errorf("cannot create token maker: %w", err)
+	}
+
+	accessTokenDuration, err := time.ParseDuration(os.Getenv("ACCESS_TOKEN_DURATION"))
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse access token duration: %w", err)
+	}
+
+	refreshTokenDuration, err := time.ParseDuration(os.Getenv("REFRESH_TOKEN_DURATION"))
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse refresh token duration: %w", err)
+	}
+
+	server := &Server{
+		store:                store,
+		tokenMaker:           tokenMaker,
+		accessTokenDuration:  accessTokenDuration,
+		refreshTokenDuration: refreshTokenDuration,
+	}
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("currency", validCurrency)
 	}
 
+	server.setupRouter()
+	return server, nil
+}
+
+func (server *Server) setupRouter() {
+	router := gin.Default()
+
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+	router.POST("/users", server.createUser)
+	router.POST("/users/login", server.loginUser)
 
-	router.POST("/accounts", server.createAccount)
-	router.GET("/accounts/:id", server.getAccountById)
-	router.GET("/accounts", server.getAccounts)
-	router.DELETE("/accounts/:id", server.deleteAccount)
-	router.PATCH("/accounts/:id", server.updateAccount)
+	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 
-	router.POST("/transfer", server.createTransfer)
+	authRoutes.POST("/users/logout", server.logoutUser)
+	authRoutes.POST("/users/token/refresh", server.renewAccessToken)
+	authRoutes.POST("/users/revoke", server.revokeSession)
+
+	authRoutes.POST("/accounts", server.createAccount)
+	authRoutes.GET("/accounts/:id", server.getAccountById)
+	
+	authRoutes.GET("/accounts", server.getAccounts)
+	authRoutes.DELETE("/accounts/:id", server.deleteAccount)
+	authRoutes.PATCH("/accounts/:id", server.updateAccount)
+
+	authRoutes.POST("/transfer", server.createTransfer)
 
 	server.router = router
-	return server
 }
 
 func (server *Server) Start(address string) error {

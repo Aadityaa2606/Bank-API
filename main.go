@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -18,7 +17,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	dbSource := fmt.Sprintf("postgresql://%v:%v@localhost:5432/%v?sslmode=disable", os.Getenv("DB_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("DB_NAME"))
+	dbSource := os.Getenv("DB_SOURCE")
 
 	// Creates DB connection
 	conn, err := pgxpool.New(context.Background(), dbSource)
@@ -27,7 +26,11 @@ func main() {
 	}
 
 	store := db.NewStore(conn)
-	server := api.NewServer(store)
+	server, err := api.NewServer(store)
+
+	if err != nil {
+		log.Fatal("cannot create server: ", err)
+	}
 
 	err = server.Start(os.Getenv("SERVER_ADDR"))
 	if err != nil {
