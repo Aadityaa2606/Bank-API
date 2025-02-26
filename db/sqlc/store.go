@@ -2,11 +2,14 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var ErrInsufficientBalance = errors.New("insufficient balance for transfer")
 
 type Store struct {
 	*Queries
@@ -60,6 +63,17 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
 
+		// Check if source account has sufficient balance
+		fromAccount, err := q.GetAccount(ctx, arg.FromAccountID)
+		if err != nil {
+			return err
+		}
+
+		if fromAccount.Balance < arg.Amount {
+			return ErrInsufficientBalance
+		}
+
+		// Continue with transfer if sufficient balance exists
 		result.Transfer, err = q.CreateTransfer(ctx, CreateTransferParams(arg))
 		if err != nil {
 			return err
