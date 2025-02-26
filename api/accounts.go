@@ -1,26 +1,33 @@
+// This includes functionality for account management operations like creation,
+// retrieval, updating, and deletion of bank accounts.
 package api
 
 import (
+	"errors"
 	"net/http"
 
 	db "github.com/Aadityaa2606/simpleBank/db/sqlc"
+	"github.com/Aadityaa2606/simpleBank/token"
 	"github.com/gin-gonic/gin"
 )
 
 type createAccountRequest struct {
-	Owner    string `json:"owner" binding:"required"`
 	Currency string `json:"currency" binding:"required,currency"`
 }
 
+// createAccount creates a new bank account for the authenticated user.
+// It requires a valid currency in the request body and sets the initial balance to 0.
 func (server *Server) createAccount(ctx *gin.Context) {
 	var req createAccountRequest
-	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Currency: req.Currency,
 		Balance:  0,
 	}
@@ -37,6 +44,8 @@ type getAccountByIdRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
+// getAccountById retrieves a specific account by its ID.
+// Only returns the account if it belongs to the authenticated user.
 func (server *Server) getAccountById(ctx *gin.Context) {
 	var req getAccountByIdRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -49,6 +58,16 @@ func (server *Server) getAccountById(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		ctx.JSON(
+			http.StatusUnauthorized,
+			errorResponse(errors.New("account doesn't belong to the authenticated user")),
+		)
+		return
+	}
+
 	ctx.JSON(http.StatusOK, account)
 }
 
@@ -57,6 +76,7 @@ type getAccountsRequest struct {
 	Offset int32 `form:"offset"`
 }
 
+// getAccounts returns a paginated list of accounts belonging to the authenticated user.
 func (server *Server) getAccounts(ctx *gin.Context) {
 	var req getAccountsRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -64,7 +84,9 @@ func (server *Server) getAccounts(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	accounts, err := server.store.ListAccounts(ctx, db.ListAccountsParams{
+		Owner:  authPayload.Username,
 		Limit:  req.Limit,
 		Offset: req.Offset,
 	})
@@ -84,6 +106,8 @@ type updateAccountBalanceRequest struct {
 	Balance int64 `json:"balance" binding:"required"` // Bind balance from JSON body
 }
 
+// updateAccount updates the balance of a specific account.
+// Only allows updates if the account belongs to the authenticated user.
 func (server *Server) updateAccount(ctx *gin.Context) {
 	var req1 updateAccountIDRequest
 	var req2 updateAccountBalanceRequest
@@ -95,8 +119,28 @@ func (server *Server) updateAccount(ctx *gin.Context) {
 	}
 
 	// Bind JSON body (balance)
-	if err := ctx.ShouldBindBodyWithJSON(&req2); err != nil {
+	if err := ctx.ShouldBindJSON(&req2); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// Check if the account belongs to the authenticated user
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	isAccountOwner, err := server.store.CheckAccountOwnership(ctx, db.CheckAccountOwnershipParams{
+		ID:    req1.ID,
+		Owner: authPayload.Username,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if !isAccountOwner {
+		ctx.JSON(
+			http.StatusUnauthorized,
+			errorResponse(errors.New("account doesn't belong to the authenticated user")),
+		)
 		return
 	}
 
@@ -116,6 +160,8 @@ type deleteAccountRequest struct {
 	ID int64 `uri:"id"`
 }
 
+// deleteAccount removes an account from the system.
+// Only allows deletion if the account belongs to the authenticated user.
 func (server *Server) deleteAccount(ctx *gin.Context) {
 	var req deleteAccountRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -123,9 +169,31 @@ func (server *Server) deleteAccount(ctx *gin.Context) {
 		return
 	}
 
-	err := server.store.DeleteAccount(ctx, req.ID)
+	// Check if the account belongs to the authenticated user
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	isAccountOwner, err := server.store.CheckAccountOwnership(ctx, db.CheckAccountOwnershipParams{
+		ID:    req.ID,
+		Owner: authPayload.Username,
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
+
+	if !isAccountOwner {
+		ctx.JSON(
+			http.StatusUnauthorized,
+			errorResponse(errors.New("account doesn't belong to the authenticated user")),
+		)
+		return
+	}
+
+	err = server.store.DeleteAccount(ctx, req.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
 	ctx.JSON(http.StatusNoContent, nil)
 }

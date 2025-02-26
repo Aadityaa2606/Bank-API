@@ -34,6 +34,25 @@ func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalancePa
 	return i, err
 }
 
+const checkAccountOwnership = `-- name: CheckAccountOwnership :one
+SELECT EXISTS (
+  SELECT 1 FROM accounts
+  WHERE id = $1 AND owner = $2
+) AS is_owner
+`
+
+type CheckAccountOwnershipParams struct {
+	ID    int64  `json:"id"`
+	Owner string `json:"owner"`
+}
+
+func (q *Queries) CheckAccountOwnership(ctx context.Context, arg CheckAccountOwnershipParams) (bool, error) {
+	row := q.db.QueryRow(ctx, checkAccountOwnership, arg.ID, arg.Owner)
+	var is_owner bool
+	err := row.Scan(&is_owner)
+	return is_owner, err
+}
+
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts (
   owner, balance, currency 
@@ -112,18 +131,20 @@ func (q *Queries) GetAccountForUpdate(ctx context.Context, id int64) (Account, e
 
 const listAccounts = `-- name: ListAccounts :many
 SELECT id, owner, currency, created_at, balance FROM accounts
+WHERE owner = $1
 ORDER BY id
-LIMIT $1
-OFFSET $2
+LIMIT $2
+OFFSET $3
 `
 
 type ListAccountsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Owner  string `json:"owner"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
 }
 
 func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]Account, error) {
-	rows, err := q.db.Query(ctx, listAccounts, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listAccounts, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
