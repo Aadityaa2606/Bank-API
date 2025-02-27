@@ -1,50 +1,88 @@
-ifneq ("$(GITHUB_ACTIONS)", "true")
-    include .env
-endif
+include .env
 
-POSTGRES_CONTAINER=postgres
-POSTGRES_PASSWORD ?= $(or $(POSTGRES_PASSWORD),password)
-DB_NAME ?= $(or $(DB_NAME),testdb)
-DB_USER ?= $(or $(DB_USER),root)
-DB_PORT=5432
-DB_HOST=localhost
-GOOSE_DRIVER=postgres
-GOOSE_DBSTRING=postgresql://$(DB_USER):$(POSTGRES_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
-GOOSE_DIR=./db/migration
+.PHONY: help
 
-devenv:
-	sudo systemctl start docker | sudo docker start postgres | sudo docker ps
+help: ## Display this help screen
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-postgres:
-	sudo docker run --name $(POSTGRES_CONTAINER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) -p $(DB_PORT):$(DB_PORT) -d postgres:17-alpine
+##@ Database Management
 
-createdb:
-	sudo docker start $(POSTGRES_CONTAINER) || true
-	sudo docker exec -it $(POSTGRES_CONTAINER) createdb --username=$(DB_USER) --owner=$(DB_USER) $(DB_NAME)
+startdb: ## Start PostgreSQL container
+	sudo docker run --name $(POSTGRES_CONTAINER_NAME) \
+		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+		-p $(DB_PORT):$(DB_PORT) \
+		-d postgres:17-alpine || sudo docker start $(POSTGRES_CONTAINER_NAME)
 
-dropdb:
-	sudo docker start $(POSTGRES_CONTAINER) || true
-	sudo docker exec -it $(POSTGRES_CONTAINER) dropdb --username=$(DB_USER) $(DB_NAME)
+stopdb: ## Stop PostgreSQL container
+	sudo docker stop $(POSTGRES_CONTAINER_NAME) || true
 
-migrateup:
-	goose $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" -dir $(GOOSE_DIR) up
+createdb: ## Creates the database
+	sudo docker start $(POSTGRES_CONTAINER_NAME) || true
+	sudo docker exec -it $(POSTGRES_CONTAINER_NAME) createdb --username=$(DB_USER) --owner=$(DB_USER) $(DB_NAME) || \
+	echo "Database already exists, skipping creation."
 
-migrateup1:
-	goose $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" -dir $(GOOSE_DIR) up 1
+dropdb: ## Deletes the database
+	sudo docker exec -it $(POSTGRES_CONTAINER_NAME) dropdb --username=$(DB_USER) $(DB_NAME)
 
-migratedown:
-	goose $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" -dir $(GOOSE_DIR) down
+resetdb: ## Resets the database
+	make dropdb
+	make createdb
 
-migratedown1:
-	goose $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" -dir $(GOOSE_DIR) down 1
+psql: ## Connect to PostgreSQL with psql
+	sudo docker exec -it $(POSTGRES_CONTAINER_NAME) psql --username=$(DB_USER) --dbname=$(DB_NAME)
 
-sqlc:
+##@ Migrations
+
+migrateup: ## Run all pending migrations
+	goose -dir $(GOOSE_MIGRATION_DIR) postgres "$(DB_SOURCE)" up
+
+migrateup1: ## Run 1 pending migration
+	goose -dir $(GOOSE_MIGRATION_DIR) postgres "$(DB_SOURCE)" up 1
+
+migratedown: ## Rollback all migrations
+	goose -dir $(GOOSE_MIGRATION_DIR) postgres "$(DB_SOURCE)" down
+
+migratedown1: ## Rollback 1 migration
+	goose -dir $(GOOSE_MIGRATION_DIR) postgres "$(DB_SOURCE)" down 1
+
+##@ Code Generation
+
+sqlc: ## Generate Go code from SQL
 	sqlc generate
 
-test:
-	go test -v -cover ./...
+proto: ## Generate Go code from Protocol Buffers
+	rm -f pb/*.go
+	protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
+		--go-grpc_out=pb --go-grpc_opt=paths=source_relative \
+		proto/*.proto
 
-server:
+##@ Testing and Running
+
+test: ## Run tests with coverage (no cache)
+	go test -v -cover -count=1 ./...
+
+server: ## Run the server
 	go run main.go
 
-.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc printenv server
+build: ## Build the application
+	go build -o bin/simple_bank main.go 
+
+start: ## Starts every service
+	sudo systemctl start docker
+	sleep 2
+	make startdb
+	sleep 5
+	make createdb
+	make migrateup
+	make server
+
+start-remote: ## Starts server without db since db is hosted remotely
+	make migrateup
+	make server
+
+stop: ## Stops every service
+	make stopdb
+	sleep 2
+	sudo systemctl stop docker.socket docker
+
+.PHONY: startdb stopdb createdb dropdb resetdb psql migrateup migratedown migrateup1 migratedown1 sqlc proto test server build start stop start-remote
