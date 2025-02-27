@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	db "github.com/Aadityaa2606/simpleBank/db/sqlc"
-	"github.com/Aadityaa2606/simpleBank/token"
+	db "github.com/Aadityaa2606/Bank-API/db/sqlc"
+	"github.com/Aadityaa2606/Bank-API/token"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -69,7 +69,7 @@ func (server *Server) setupRouter() {
 
 	authRoutes.POST("/accounts", server.createAccount)
 	authRoutes.GET("/accounts/:id", server.getAccountById)
-	
+
 	authRoutes.GET("/accounts", server.getAccounts)
 	authRoutes.DELETE("/accounts/:id", server.deleteAccount)
 	authRoutes.PATCH("/accounts/:id", server.updateAccount)

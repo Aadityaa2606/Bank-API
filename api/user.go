@@ -1,17 +1,16 @@
 package api
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
-	db "github.com/Aadityaa2606/simpleBank/db/sqlc"
-	"github.com/Aadityaa2606/simpleBank/util"
+	db "github.com/Aadityaa2606/Bank-API/db/sqlc"
+	"github.com/Aadityaa2606/Bank-API/util"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/lib/pq"
 )
 
 type createUserRequest struct {
@@ -61,14 +60,15 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok {
-			log.Println(pqErr.Code.Name())
-			switch pqErr.Code.Name() {
-			case "unique_violation":
+
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+			case "23505": // unique_violation
 				ctx.JSON(http.StatusConflict, errorResponse(err))
 				return
 			}
 		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -104,7 +104,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	// Get the user from the database
 	user, err := server.store.GetUser(ctx, req.Username)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			ctx.JSON(http.StatusUnauthorized, gin.H{
 				"error": "user not found",
 			})

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Aadityaa2606/simpleBank/util"
+	"github.com/Aadityaa2606/Bank-API/util"
 	"github.com/stretchr/testify/require"
 )
 

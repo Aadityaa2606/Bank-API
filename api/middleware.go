@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Aadityaa2606/simpleBank/token"
+	"github.com/Aadityaa2606/Bank-API/token"
 	"github.com/gin-gonic/gin"
 )
 

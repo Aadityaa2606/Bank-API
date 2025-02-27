@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	db "github.com/Aadityaa2606/simpleBank/db/sqlc"
-	"github.com/Aadityaa2606/simpleBank/token"
+	db "github.com/Aadityaa2606/Bank-API/db/sqlc"
+	"github.com/Aadityaa2606/Bank-API/token"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 )
