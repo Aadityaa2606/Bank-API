@@ -47,4 +47,6 @@ jobs:
         run: goose -dir ${{ secrets.GOOSE_MIGRATION_DIR }} postgres ${{ secrets.DB_SOURCE }} up
 
       - name: Test
+        env:
+          DB_SOURCE: ${{ secrets.DB_SOURCE }}
         run: go test -v -cover -count=1 ./...

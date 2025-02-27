@@ -14,12 +14,16 @@ var testQueries *Queries
 var testDB *pgxpool.Pool
 
 func TestMain(m *testing.M) {
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Fatal("Error loading .env file", err)
-	}
-	dbSource := os.Getenv("DB_SOURCE")
+	// Try loading .env file, ignore error if file doesn't exist
+	_ = godotenv.Load("../../.env")
 
+	// Get DB connection string from environment variable
+	dbSource := os.Getenv("DB_SOURCE")
+	if dbSource == "" {
+		log.Fatal("DB_SOURCE environment variable is not set")
+	}
+
+	var err error
 	testDB, err = pgxpool.New(context.Background(), dbSource)
 	if err != nil {
 		log.Fatal("cannot connect to db:", err)
