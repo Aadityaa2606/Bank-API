@@ -18,8 +18,8 @@ jobs:
         image: postgres:17-alpine
         env:
           POSTGRES_USER: ${{secrets.DB_USER}}
-          POSTGRES_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
           POSTGRES_DB: ${{secrets.DB_NAME}}
+          POSTGRES_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
         ports:
           - 5432:5432
         options: >-
@@ -44,11 +44,7 @@ jobs:
           version: v3.24.1
 
       - name: Run migrations
-        env:
-          DB_USER: ${{ secrets.DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-        run: make migrateup
+        run: goose -dir ${{ secrets.GOOSE_MIGRATION_DIR }} postgres ${{ secrets.DB_SOURCE }} up
 
       - name: Test
-        run: make test
+        run: go test -v -cover -count=1 ./...
