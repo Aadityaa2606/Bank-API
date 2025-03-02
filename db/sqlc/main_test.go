@@ -14,7 +14,7 @@ var testQueries *Queries
 var testDB *pgxpool.Pool
 
 func TestMain(m *testing.M) {
-	// Try loading .env file, ignore error if file doesn't exist
+	// Try loading .env file, ignore error if file doesn't exist (github actions)
 	_ = godotenv.Load("../../.env")
 
 	// Get DB connection string from environment variable

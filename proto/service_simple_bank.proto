@@ -1,13 +1,191 @@
-syntax="proto3";
-
+syntax = "proto3";
 package pb;
 
 import "rpc_create_user.proto";
 import "rpc_login_user.proto";
+import "rpc_update_user.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 option go_package = "github.com/Aadityaa2606/Bank-API/pb";
 
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Simple Bank API"
+    version: "1.1"
+    description: "API for a simple banking application"
+    contact: {
+      name: "Aadityaa Nagarjan"
+      url: "https://github.com/Aadityaa2606"
+      email: "aadityaa2606@gmail.com"
+    }
+    license: {
+      name: "MIT License"
+      url: "https://github.com/Aadityaa2606/Bank-API/blob/main/LICENSE"
+    }
+    extensions: {
+      key: "x-api-domain"
+      value: {string_value: "banking.example.com"}
+    }
+  }
+  schemes: HTTP
+  schemes: HTTPS
+  consumes: "application/json"
+  produces: "application/json"
+  security_definitions: {
+    security: {
+      key: "BearerAuth"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "Authorization"
+        description: "Authentication token, prefixed by 'Bearer: '"
+      }
+    }
+    security: {
+      key: "OAuth2"
+      value: {
+        type: TYPE_OAUTH2
+        flow: FLOW_ACCESS_CODE
+        authorization_url: "https://auth.banking.example.com/oauth/authorize"
+        token_url: "https://auth.banking.example.com/oauth/token"
+        scopes: {
+          scope: {
+            key: "read"
+            value: "Grants read access"
+          }
+          scope: {
+            key: "write"
+            value: "Grants write access"
+          }
+          scope: {
+            key: "admin"
+            value: "Grants administrative access"
+          }
+        }
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "BearerAuth"
+      value: {}
+    }
+  }
+  responses: {
+    key: "400"
+    value: {description: "Bad Request - The request contains invalid parameters"}
+  }
+  responses: {
+    key: "401"
+    value: {description: "Unauthorized - Authentication failed or user doesn't have permissions"}
+  }
+  responses: {
+    key: "403"
+    value: {description: "Forbidden - The user is not authorized to access the requested resource"}
+  }
+  responses: {
+    key: "404"
+    value: {description: "Not Found - The requested resource doesn't exist"}
+  }
+  responses: {
+    key: "500"
+    value: {description: "Internal Server Error - Something went wrong on the server"}
+  }
+  external_docs: {
+    url: "https://github.com/Aadityaa2606/Bank-API/wiki"
+    description: "Find more information about the Simple Bank API"
+  }
+};
+
 service SimpleBank {
-    rpc CreateUser (CreateUserResquest) returns (CreateUserResponse) {}
-    rpc LoginUser (LoginUserRequest) returns (LoginUserResponse) {}
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    name: "SimpleBank"
+    description: "Banking service with user management and authentication capabilities"
+    external_docs: {
+      url: "https://github.com/Aadityaa2606/Bank-API/blob/main/README.md"
+      description: "Learn more about the SimpleBank service"
+    }
+  };
+
+  // CreateUser creates a new user account in the banking system
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+    option (google.api.http) = {
+      post: "/v1/users"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create a new user account"
+      description: "Creates a new user with the provided user details and returns the created user information"
+      tags: "User Management"
+      responses: {
+        key: "201"
+        value: {
+          description: "User created successfully"
+          examples: {
+            key: "application/json"
+            value: '{"user_id": "user123", "username": "john_doe", "created_at": "2025-02-28T12:00:00Z"}'
+          }
+        }
+      }
+      responses: {
+        key: "409"
+        value: {description: "Conflict - User with the same username or email already exists"}
+      }
+    };
+  }
+  
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
+    option (google.api.http) = {
+      patch: "/v1/users"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update user account details"
+      description: "Updates the user account details and returns the updated user object"
+      tags: "User Management"
+      responses: {
+        key: "201"
+        value: {
+          description: "User updated successfully"
+          examples: {
+            key: "application/json"
+            value: '{"user_id": "user123", "username": "john_doe", "created_at": "2025-02-28T12:00:00Z"}'
+          }
+        }
+      }
+      responses: {
+        key: "409"
+        value: {description: "Conflict - User update failed"}
+      }
+    };
+  }
+
+  // LoginUser authenticates a user and provides access tokens
+  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse) {
+    option (google.api.http) = {
+      post: "/v1/login"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Authenticate a user"
+      description: "Authenticates a user with their credentials and returns an access token"
+      tags: "Authentication"
+      responses: {
+        key: "200"
+        value: {
+          description: "Login successful"
+          examples: {
+            key: "application/json"
+            value: '{"access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", "expires_at": "2025-03-01T12:00:00Z"}'
+          }
+        }
+      }
+      responses: {
+        key: "401"
+        value: {description: "Unauthorized - Invalid credentials"}
+      }
+      security: {}  // No auth required for login endpoint
+    }; 
+  }
 }
