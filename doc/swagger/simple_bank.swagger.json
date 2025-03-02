@@ -1,0 +1,404 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Simple Bank API",
+    "description": "API for a simple banking application",
+    "version": "1.1",
+    "contact": {
+      "name": "Aadityaa Nagarjan",
+      "url": "https://github.com/Aadityaa2606",
+      "email": "aadityaa2606@gmail.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://github.com/Aadityaa2606/Bank-API/blob/main/LICENSE"
+    },
+    "x-api-domain": "banking.example.com"
+  },
+  "tags": [
+    {
+      "name": "SimpleBank",
+      "description": "Banking service with user management and authentication capabilities",
+      "externalDocs": {
+        "description": "Learn more about the SimpleBank service",
+        "url": "https://github.com/Aadityaa2606/Bank-API/blob/main/README.md"
+      }
+    }
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/login": {
+      "post": {
+        "summary": "Authenticate a user",
+        "description": "Authenticates a user with their credentials and returns an access token",
+        "operationId": "SimpleBank_LoginUser",
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "schema": {
+              "$ref": "#/definitions/pbLoginUserResponse"
+            },
+            "examples": {
+              "application/json": {
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "expires_at": "2025-03-01T12:00:00Z"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The request contains invalid parameters",
+            "schema": {}
+          },
+          "401": {
+            "description": "Unauthorized - Invalid credentials",
+            "schema": {}
+          },
+          "403": {
+            "description": "Forbidden - The user is not authorized to access the requested resource",
+            "schema": {}
+          },
+          "404": {
+            "description": "Not Found - The requested resource doesn't exist",
+            "schema": {}
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong on the server",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbLoginUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "security": []
+      }
+    },
+    "/v1/users": {
+      "post": {
+        "summary": "Create a new user account",
+        "description": "Creates a new user with the provided user details and returns the created user information",
+        "operationId": "SimpleBank_CreateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateUserResponse"
+            }
+          },
+          "201": {
+            "description": "User created successfully",
+            "schema": {},
+            "examples": {
+              "application/json": {
+                "user_id": "user123",
+                "username": "john_doe",
+                "created_at": "2025-02-28T12:00:00Z"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The request contains invalid parameters",
+            "schema": {}
+          },
+          "401": {
+            "description": "Unauthorized - Authentication failed or user doesn't have permissions",
+            "schema": {}
+          },
+          "403": {
+            "description": "Forbidden - The user is not authorized to access the requested resource",
+            "schema": {}
+          },
+          "404": {
+            "description": "Not Found - The requested resource doesn't exist",
+            "schema": {}
+          },
+          "409": {
+            "description": "Conflict - User with the same username or email already exists",
+            "schema": {}
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong on the server",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "User Management"
+        ]
+      },
+      "patch": {
+        "summary": "Update user account details",
+        "description": "Updates the user account details and returns the updated user object",
+        "operationId": "SimpleBank_UpdateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateUserResponse"
+            }
+          },
+          "201": {
+            "description": "User updated successfully",
+            "schema": {},
+            "examples": {
+              "application/json": {
+                "user_id": "user123",
+                "username": "john_doe",
+                "created_at": "2025-02-28T12:00:00Z"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - The request contains invalid parameters",
+            "schema": {}
+          },
+          "401": {
+            "description": "Unauthorized - Authentication failed or user doesn't have permissions",
+            "schema": {}
+          },
+          "403": {
+            "description": "Forbidden - The user is not authorized to access the requested resource",
+            "schema": {}
+          },
+          "404": {
+            "description": "Not Found - The requested resource doesn't exist",
+            "schema": {}
+          },
+          "409": {
+            "description": "Conflict - User update failed",
+            "schema": {}
+          },
+          "500": {
+            "description": "Internal Server Error - Something went wrong on the server",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbUpdateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "User Management"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "pbCreateUserRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "fullName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "pbCreateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/pbUser"
+        }
+      }
+    },
+    "pbLoginUserRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "pbLoginUserResponse": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "accessToken": {
+          "type": "string"
+        },
+        "refreshToken": {
+          "type": "string"
+        },
+        "accessTokenExpiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "refreshTokenExpiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "user": {
+          "$ref": "#/definitions/pbUser"
+        }
+      }
+    },
+    "pbUpdateUserRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "fullName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "pbUpdateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/pbUser"
+        }
+      }
+    },
+    "pbUser": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "fullName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "passwordChangedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "description": "Authentication token, prefixed by 'Bearer: '",
+      "name": "Authorization",
+      "in": "header"
+    },
+    "OAuth2": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "authorizationUrl": "https://auth.banking.example.com/oauth/authorize",
+      "tokenUrl": "https://auth.banking.example.com/oauth/token",
+      "scopes": {
+        "admin": "Grants administrative access",
+        "read": "Grants read access",
+        "write": "Grants write access"
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "externalDocs": {
+    "description": "Find more information about the Simple Bank API",
+    "url": "https://github.com/Aadityaa2606/Bank-API/wiki"
+  }
+}
