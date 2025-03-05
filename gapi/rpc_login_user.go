@@ -6,7 +6,6 @@ import (
 	db "github.com/Aadityaa2606/Bank-API/db/sqlc"
 	"github.com/Aadityaa2606/Bank-API/pb"
 	"github.com/Aadityaa2606/Bank-API/util"
-	"github.com/Aadityaa2606/Bank-API/val"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -88,11 +87,11 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 }
 
 func validateLoginUserRequest(req *pb.LoginUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
-	if err := val.ValidateUsername(req.GetUsername()); err != nil {
+	if err := util.ValidateUsername(req.GetUsername()); err != nil {
 		violations = append(violations, fieldViolations("username", err))
 	}
 
-	if err := val.ValidatePassword(req.GetPassword()); err != nil {
+	if err := util.ValidatePassword(req.GetPassword()); err != nil {
 		violations = append(violations, fieldViolations("password", err))
 	}
 
