@@ -7,7 +7,6 @@ import (
 	db "github.com/Aadityaa2606/Bank-API/db/sqlc"
 	"github.com/Aadityaa2606/Bank-API/pb"
 	"github.com/Aadityaa2606/Bank-API/util"
-	"github.com/Aadityaa2606/Bank-API/val"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -88,24 +87,24 @@ func (server *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest)
 }
 
 func validateUpdateUserRequest(req *pb.UpdateUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
-	if err := val.ValidateUsername(req.GetUsername()); err != nil {
+	if err := util.ValidateUsername(req.GetUsername()); err != nil {
 		violations = append(violations, fieldViolations("username", err))
 	}
 
 	if req.GetPassword() != "" {
-		if err := val.ValidatePassword(req.GetPassword()); err != nil {
+		if err := util.ValidatePassword(req.GetPassword()); err != nil {
 			violations = append(violations, fieldViolations("password", err))
 		}
 	}
 
 	if req.GetFullName() != "" {
-		if err := val.ValidateFullName(req.GetFullName()); err != nil {
+		if err := util.ValidateFullName(req.GetFullName()); err != nil {
 			violations = append(violations, fieldViolations("full_name", err))
 		}
 	}
 
 	if req.GetEmail() != "" {
-		if err := val.ValidateEmail(req.GetEmail()); err != nil {
+		if err := util.ValidateEmail(req.GetEmail()); err != nil {
 			violations = append(violations, fieldViolations("email", err))
 		}
 	}
